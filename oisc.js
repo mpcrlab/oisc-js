@@ -23,6 +23,14 @@ class LazyListWithTriggers {
         this.read_callbacks = read_callbacks;
         this.write_callbacks = write_callbacks;
         this.symbols = symbols;
+        this.symbols_of_ix = {};
+        for (let [name, ix] of Object.entries(symbols)) {
+            if (ix in this.symbols_of_ix) {
+                this.symbols_of_ix[ix].push(name);
+            } else {
+                this.symbols_of_ix[ix] = [name];
+            }
+        }
         return new Proxy(this, {
             get: (llist, ix, proxy) => {
                 ix = (ix in llist.symbols) ? llist.symbols[ix] : ix;
@@ -58,16 +66,20 @@ class LazyListWithTriggers {
         ix = (ix in this.symbols) ? this.symbols[ix] : ix;
         this.read_callbacks[ix] = callback;
     }
-    register_write_callback(ix, callback) {
+    register_write_callbacks(ix, callbacks, overwrite = false) {
+        if (typeof callbacks !== 'Array') {
+            callbacks = [callbacks];
+        }
         ix = (ix in this.symbols) ? this.symbols[ix] : ix;
-        if (ix in this.write_callbacks) { 
-            this.write_callbacks[ix].push(callback);
+        if (ix in this.write_callbacks && !overwrite) {
+            this.write_callbacks[ix] = this.write_callbacks[ix].concat(callbacks);
         } else {
-            this.write_callbacks[ix] = [callback]; 
+            this.write_callbacks[ix] = callbacks;
         }
     }
     register_symbol(name, ix) {
         this.symbols[name] = ix;
+        this.symbols_of_ix[ix] = name;
     }
 } 
 
@@ -77,7 +89,7 @@ function oisc_step(memory) {
     memory.ip += 2;
 }
 
-const oisc_default_config = {
+export const oisc_default_config = {
     0: { name: "ip", value: 16 },
     1: { name: "A", value: 0 },
     2: { name: "B", value: 0 },
@@ -125,4 +137,93 @@ function load_oisc_from_config(oisc_config) {
         }
     });
     return memory;
+}
+
+export class OISC {
+    constructor(oisc_config = oisc_default_config) {
+        let memory = new LazyListWithTriggers();
+        Object.entries(oisc_config).forEach(([ix,config]) => {
+            this.configure(ix, config);
+        });
+    }
+
+    configure(ix, config) {
+        if ("name" in config) {
+            this.memory.register_symbol(config.name, ix);
+        }
+        if ("symbol" in config) {
+            this.memory.register_symbol(config.symbol, ix);
+        }
+        if ("symbols" in config) {
+            config.symbols.forEach(symbol => {
+                this.memory.register_symbol(symbol, ix);
+            });
+        }
+        if ("onread" in config) {
+            this.memory.register_read_callback(ix, config.onread);
+        }
+        if ("onwrite" in config) {
+            this.memory.register_write_callback(ix, config.onwrite, overwrite = true);
+        }
+        if ("value" in config) {
+            if (typeof(config.value) == "function") {
+                this.memory.register_read_callback(ix, config.value);
+            } else {
+                this.memory[ix] = config.value;
+            }
+        }
+        if ("values" in config) {
+            if (typeof(config.values) !== "Array") {
+                config.values = [config.values];
+            }
+            for (let i = 0; i < config.values.length; i++) {
+                this.memory[Number.parseInt(ix) + i] = config.values[i];
+            }
+        }
+    }
+
+    export_config(include_callbacks = true) {
+        let config = {};
+        for (let ix in this.memory.values) {
+            config[ix] = { value: this.memory[ix] };
+            if (ix in this.memory.symbols_of_ix) {
+                if (Array.length(this.memory.symbols_of_ix[ix]) > 1) {
+                    config[ix].symbols = this.memory.symbols_of_ix[ix];
+                } else {
+                    config[ix].symbol = this.memory.symbols_of_ix[ix][0];
+                }
+            }
+            if (ix in this.memory.read_callbacks && include_callbacks) {
+                config[ix].onread = this.memory.read_callbacks[ix];
+            }
+            if (ix in this.memory.write_callbacks && include_callbacks) {
+                config[ix].onwrite = this.memory.write_callbacks[ix];
+            }
+        }
+        return config;
+    }
+
+    isDone() {
+        return this.memory[0] == 0;
+    }
+
+    step() {
+        if (this.isDone()) {
+            throw new Error("Program has ended");
+        } else {
+            memory[memory[0]] = memory[memory[0] + 1];
+            memory[0] += 2;
+        }
+    }
+
+    run(max_steps = Infinity) {
+        let step_count = 0;
+        while (!this.isDone()) {
+            this.step();
+            if (step_count++ > max_steps) {
+                return false;
+            }
+        }
+        return step_count;
+    }
 }
