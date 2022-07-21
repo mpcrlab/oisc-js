@@ -29,9 +29,24 @@ function generate_table_display(num_rows, num_cols) {
         const row = document.createElement("tr");
         row.className = "oisc_row";
         for (let j = 0; j < num_cols; j++) {
+            let ix = i * num_cols + j;
             const cell = document.createElement("td");
             cell.className = "oisc_cell";
-            cell.innerHTML = `<span class="oisc_mem_cell" id="oisc_mem_${i*num_cols + j}">0</span>`;
+            cell.id = "oisc_cell_" + ix;
+            cell.addEventListener("click", show_config_window);
+            const cell_value = document.createElement("input");
+            cell_value.className = "oisc_cell_value";
+            cell_value.id = "oisc_cell_" + ix + "_value";
+            cell_value.name = "oisc_cell_" + ix + "_value";
+            cell_value.type = "text";
+            cell_value.readOnly = true;
+            const cell_label = document.createElement("label");
+            cell_label.className = "oisc_cell_label";
+            cell_label.id = "oisc_cell_label_" + ix;
+            cell_label.innerHTML = "(" + ix + ")";
+            cell_label.target = "oisc_cell_" + ix + "_value";
+            cell.appendChild(cell_label);
+            cell.appendChild(cell_value);
             row.appendChild(cell);
         }
         table.appendChild(row);
@@ -41,16 +56,34 @@ function generate_table_display(num_rows, num_cols) {
 
 // Opens the configuration popup window for each cell (onclick).
 // The popup window lets you edit the symbol name, the value, and the callbacks.
-function open_config_window(e) {
+function show_config_window(e) {
     const cell_id = e.target.id;
     const cell_ix = parseInt(cell_id.substring(cell_id.lastIndexOf("_")));
-    const cell_config = oisc_config[cell_ix];
+    const cell_config = cell_ix in oisc_config ? oisc_config[cell_ix] : {};
     const config_window = document.getElementById("oisc_config_window");
     config_window.style.display = "block";
     config_window.style.left = e.clientX + "px";
     config_window.style.top = e.clientY + "px";
-    document.getElementById("oisc_config_name").value = cell_config.name;
-    document.getElementById("oisc_config_value").value = cell_config.value;
-    document.getElementById("oisc_config_onread").value = cell_config.onread;
-    document.getElementById("oisc_config_onwrite").value = cell_config.onwrite;
+    document.getElementById("oisc_config_name").value = cell_config.name ? cell_config.name : "";
+    document.getElementById("oisc_config_value").value = cell_config.value ? cell_config.value : "0";
+    document.getElementById("oisc_config_onread").value = cell_config.onread ? cell_config.onread : "";
+    document.getElementById("oisc_config_onwrite").value = cell_config.onwrite ? cell_config.onwrite : "";
+}
+
+// Saves the configuration for the cell to oisc_config.
+function save_config_window() {
+    const cell_ix = parseInt(document.getElementById("oisc_config_window").id.substring(document.getElementById("oisc_config_window").id.lastIndexOf("_")));
+    const cell_config = {
+        name: document.getElementById("oisc_config_name").value,
+        value: document.getElementById("oisc_config_value").value,
+        onread: document.getElementById("oisc_config_onread").value,
+        onwrite: document.getElementById("oisc_config_onwrite").value
+    };
+    oisc_config[cell_ix] = cell_config;
+    document.getElementById("oisc_config_window").style.display = "none";
+}
+
+// Closes the configuration popup window.
+function close_config_window() {
+    document.getElementById("config_window").style.display = "none";
 }
