@@ -54,6 +54,20 @@ function generate_table_display(num_rows, num_cols) {
     document.getElementById("oisc_display").innerHTML = table.outerHTML;
 }
 
+// Updates the labels and values of the cells from OISC machine.
+function update_table_display(oisc_machine) {
+    oisc_machine.symbols.forEach(([symbol, ix]) => {
+        const cell_label = document.getElementById("oisc_cell_label_" + ix);
+        if (cell_label) {
+            cell_label.innerHTML = ":"+symbol + " <br/> " + "(" + ix + ")";
+        }
+    });
+    document.getElementsByClassName("oisc_cell_value").forEach((cell_value) => {
+        const ix = cell_value.id.split("_")[2];
+        cell_value.value = oisc_machine.symbols[ix];
+    });
+}
+
 // Opens the configuration popup window for each cell (onclick).
 // The popup window lets you edit the symbol name, the value, and the callbacks.
 function show_config_window(e) {
@@ -83,7 +97,6 @@ function save_config_window() {
     document.getElementById("oisc_config_window").style.display = "none";
 }
 
-// Closes the configuration popup window.
-function close_config_window() {
-    document.getElementById("config_window").style.display = "none";
+function load_oisc() {
+    
 }

@@ -2,7 +2,7 @@
 
 This is an interactive demo of a new kind of computer we call the OISC. The
 code can be deployed as a web page, or oisc.js can be used as a standalone
-library implementation of the 5vm OISC.
+library implementation of the 5vm OISC. 
 
 ## License
 (C) Copyright 2022, Misha Klopukh
