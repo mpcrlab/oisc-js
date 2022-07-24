@@ -18,7 +18,12 @@
 // ----------------------------------------------------------------------------
 
 class LazyListWithTriggers {
-    constructor(values = {}, symbols = {}, read_callbacks = {}, write_callbacks = {}) {
+    constructor(
+        values = {},
+        symbols = {},
+        read_callbacks = {},
+        write_callbacks = {}
+    ) {
         this.values = values;
         this.read_callbacks = read_callbacks;
         this.write_callbacks = write_callbacks;
@@ -33,7 +38,7 @@ class LazyListWithTriggers {
         }
         return new Proxy(this, {
             get: (llist, ix, proxy) => {
-                ix = (ix in llist.symbols) ? llist.symbols[ix] : ix;
+                ix = ix in llist.symbols ? llist.symbols[ix] : ix;
                 if (ix in llist.read_callbacks) {
                     return llist.read_callbacks[ix](proxy);
                 } else if (ix in llist.values) {
@@ -47,32 +52,41 @@ class LazyListWithTriggers {
                 }
             },
             set: (llist, ix, value, proxy) => {
-                ix = (ix in llist.symbols) ? llist.symbols[ix] : ix;
+                ix = ix in llist.symbols ? llist.symbols[ix] : ix;
                 if (ix in llist.write_callbacks) {
-                    llist.write_callbacks[ix].forEach(f => { f(proxy,value); });
+                    llist.write_callbacks[ix].forEach((f) => {
+                        f(proxy, value);
+                    });
                 } else if (Number.isInteger(ix) || /^\d+$/.test(ix)) {
                     llist.values[ix] = value;
                 } else {
                     throw new ReferenceError(`Unknown symbol: ${ix}`);
                 }
             },
-            has: (llist, ix) => { 
-                return ix in llist || ix in llist.values || ix in llist.read_callbacks || ix in llist.symbols;
+            has: (llist, ix) => {
+                return (
+                    ix in llist ||
+                    ix in llist.values ||
+                    ix in llist.read_callbacks ||
+                    ix in llist.symbols
+                );
             },
         });
     }
 
     register_read_callback(ix, callback) {
-        ix = (ix in this.symbols) ? this.symbols[ix] : ix;
+        ix = ix in this.symbols ? this.symbols[ix] : ix;
         this.read_callbacks[ix] = callback;
     }
     register_write_callbacks(ix, callbacks, overwrite = false) {
         if (typeof callbacks !== 'Array') {
             callbacks = [callbacks];
         }
-        ix = (ix in this.symbols) ? this.symbols[ix] : ix;
+        ix = ix in this.symbols ? this.symbols[ix] : ix;
         if (ix in this.write_callbacks && !overwrite) {
-            this.write_callbacks[ix] = this.write_callbacks[ix].concat(callbacks);
+            this.write_callbacks[ix] = this.write_callbacks[ix].concat(
+                callbacks
+            );
         } else {
             this.write_callbacks[ix] = callbacks;
         }
@@ -81,8 +95,7 @@ class LazyListWithTriggers {
         this.symbols[name] = ix;
         this.symbols_of_ix[ix] = name;
     }
-} 
-
+}
 
 function oisc_step(memory) {
     memory[memory.ip] = memory[memory.ip + 1];
@@ -90,47 +103,58 @@ function oisc_step(memory) {
 }
 
 export const oisc_default_config = {
-    0: { name: "ip", value: 16 },
-    1: { name: "A", value: 0 },
-    2: { name: "B", value: 0 },
-    3: { name: "C", value: 0 },
-    4: { name: "add", onread: (memory) => {
-        return memory.A + memory.B;
-    } },
-    5: { name: "sub", onread: (memory) => memory.A - memory.B },
-    6: { name: "mul", onread: (memory) => memory.A * memory.B },
-    7: { name: "div", onread: (memory) => Math.floor(memory.A / memory.B) },
-    8: { name: "gt", onread: (memory) => memory.A > memory.B ? 0 : -1 },
-    9: { name: "lt", onread: (memory) => memory.A < memory.B ? 0 : -1 },
-    10: { name: "eq", onread: (memory) => memory.A == memory.B ? 0 : -1 },
-    11: { name: "input", onread: (memory) => 0 },
-    12: { name: "outchar", onwrite: (memory, value) => { console.log(String.fromCharCode(value)); } },
-    13: { name: "not", onread: (memory) => memory.C == 0 ? -1 : 0 },
-    14: { name: "xor", onread: (memory) => memory.A ^ memory.B },
-    15: { name: "ternary", onread: (memory) => memory.C == 0 ? memory.A : memory.B },
-    16: { values: [ 19, 0 ] },
-}
+    0: { name: 'ip', value: 16 },
+    1: { name: 'A', value: 0 },
+    2: { name: 'B', value: 0 },
+    3: { name: 'C', value: 0 },
+    4: {
+        name: 'add',
+        onread: (memory) => {
+            return memory.A + memory.B;
+        },
+    },
+    5: { name: 'sub', onread: (memory) => memory.A - memory.B },
+    6: { name: 'mul', onread: (memory) => memory.A * memory.B },
+    7: { name: 'div', onread: (memory) => Math.floor(memory.A / memory.B) },
+    8: { name: 'gt', onread: (memory) => (memory.A > memory.B ? 0 : -1) },
+    9: { name: 'lt', onread: (memory) => (memory.A < memory.B ? 0 : -1) },
+    10: { name: 'eq', onread: (memory) => (memory.A == memory.B ? 0 : -1) },
+    11: { name: 'input', onread: (memory) => 0 },
+    12: {
+        name: 'outchar',
+        onwrite: (memory, value) => {
+            console.log(String.fromCharCode(value));
+        },
+    },
+    13: { name: 'not', onread: (memory) => (memory.C == 0 ? -1 : 0) },
+    14: { name: 'xor', onread: (memory) => memory.A ^ memory.B },
+    15: {
+        name: 'ternary',
+        onread: (memory) => (memory.C == 0 ? memory.A : memory.B),
+    },
+    16: { values: [19, 0] },
+};
 
 function load_oisc_from_config(oisc_config) {
     let memory = new LazyListWithTriggers();
-    Object.entries(oisc_config).forEach(([ix,config]) => {
-        if ("name" in config) {
+    Object.entries(oisc_config).forEach(([ix, config]) => {
+        if ('name' in config) {
             memory.register_symbol(config.name, ix);
         }
-        if ("onread" in config) {
+        if ('onread' in config) {
             memory.register_read_callback(ix, config.onread);
         }
-        if ("onwrite" in config) {
+        if ('onwrite' in config) {
             memory.register_write_callback(ix, config.onwrite);
         }
-        if ("value" in config) {
-            if (typeof(config.value) == "function") {
+        if ('value' in config) {
+            if (typeof config.value == 'function') {
                 memory.register_read_callback(ix, config.value);
             } else {
                 memory[ix] = config.value;
             }
         }
-        if ("values" in config) {
+        if ('values' in config) {
             for (let i = 0; i < config.values.length; i++) {
                 memory[Number.parseInt(ix) + i] = config.values[i];
             }
@@ -142,38 +166,52 @@ function load_oisc_from_config(oisc_config) {
 export class OISC {
     constructor(oisc_config = oisc_default_config) {
         let memory = new LazyListWithTriggers();
-        Object.entries(oisc_config).forEach(([ix,config]) => {
+        Object.entries(oisc_config).forEach(([ix, config]) => {
             this.configure(ix, config);
         });
     }
 
+    register_read_callback(ix, callback) {
+        this.memory.register_read_callback(ix, callback);
+    }
+    register_write_callbacks(ix, callbacks, overwrite = false) {
+        this.memory.register_write_callbacks(ix, callbacks, overwrite);
+    }
+    register_write_callback(ix, callback, overwrite = false) {
+        this.memory.register_write_callbacks(ix, callback, overwrite);
+    }
+
     configure(ix, config) {
-        if ("name" in config) {
+        if ('name' in config) {
             this.memory.register_symbol(config.name, ix);
         }
-        if ("symbol" in config) {
+        if ('symbol' in config) {
             this.memory.register_symbol(config.symbol, ix);
         }
-        if ("symbols" in config) {
-            config.symbols.forEach(symbol => {
+        if ('symbols' in config) {
+            config.symbols.forEach((symbol) => {
                 this.memory.register_symbol(symbol, ix);
             });
         }
-        if ("onread" in config) {
+        if ('onread' in config) {
             this.memory.register_read_callback(ix, config.onread);
         }
-        if ("onwrite" in config) {
-            this.memory.register_write_callback(ix, config.onwrite, overwrite = true);
+        if ('onwrite' in config) {
+            this.memory.register_write_callback(
+                ix,
+                config.onwrite,
+                (overwrite = true)
+            );
         }
-        if ("value" in config) {
-            if (typeof(config.value) == "function") {
+        if ('value' in config) {
+            if (typeof config.value == 'function') {
                 this.memory.register_read_callback(ix, config.value);
             } else {
                 this.memory[ix] = config.value;
             }
         }
-        if ("values" in config) {
-            if (typeof(config.values) !== "Array") {
+        if ('values' in config) {
+            if (typeof config.values !== 'Array') {
                 config.values = [config.values];
             }
             for (let i = 0; i < config.values.length; i++) {
@@ -209,7 +247,7 @@ export class OISC {
 
     step() {
         if (this.isDone()) {
-            throw new Error("Program has ended");
+            throw new Error('Program has ended');
         } else {
             memory[memory[0]] = memory[memory[0] + 1];
             memory[0] += 2;

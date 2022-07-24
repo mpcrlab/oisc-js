@@ -22,48 +22,49 @@
 
 // Generates the HTML for the OISC machine visualization.
 function generate_table_display(num_rows, num_cols) {
-    const table = document.createElement("table");
-    table.className = "oisc_table";
+    const display_root = document.getElementById('oisc_display');
+    const table = document.createElement('table');
+    table.className = 'oisc_table';
     table.appendChild(row);
     for (let i = 0; i < num_rows; i++) {
-        const row = document.createElement("tr");
-        row.className = "oisc_row";
+        const row = document.createElement('tr');
+        row.className = 'oisc_row';
         for (let j = 0; j < num_cols; j++) {
             let ix = i * num_cols + j;
-            const cell = document.createElement("td");
-            cell.className = "oisc_cell";
-            cell.id = "oisc_cell_" + ix;
-            cell.addEventListener("click", show_config_window);
-            const cell_value = document.createElement("input");
-            cell_value.className = "oisc_cell_value";
-            cell_value.id = "oisc_cell_" + ix + "_value";
-            cell_value.name = "oisc_cell_" + ix + "_value";
-            cell_value.type = "text";
+            const cell = document.createElement('td');
+            cell.className = 'oisc_cell';
+            cell.id = 'oisc_cell_' + ix;
+            cell.addEventListener('click', show_config_window);
+            const cell_value = document.createElement('input');
+            cell_value.className = 'oisc_cell_value';
+            cell_value.id = 'oisc_cell_' + ix + '_value';
+            cell_value.name = 'oisc_cell_' + ix + '_value';
+            cell_value.type = 'text';
             cell_value.readOnly = true;
-            const cell_label = document.createElement("label");
-            cell_label.className = "oisc_cell_label";
-            cell_label.id = "oisc_cell_label_" + ix;
-            cell_label.innerHTML = "(" + ix + ")";
-            cell_label.target = "oisc_cell_" + ix + "_value";
+            const cell_label = document.createElement('label');
+            cell_label.className = 'oisc_cell_label';
+            cell_label.id = 'oisc_cell_label_' + ix;
+            cell_label.innerHTML = '(' + ix + ')';
+            cell_label.target = 'oisc_cell_' + ix + '_value';
             cell.appendChild(cell_label);
             cell.appendChild(cell_value);
             row.appendChild(cell);
         }
         table.appendChild(row);
     }
-    document.getElementById("oisc_display").innerHTML = table.outerHTML;
+    display_root.appendChild(table);
 }
 
 // Updates the labels and values of the cells from OISC machine.
 function update_table_display(oisc_machine) {
     oisc_machine.symbols.forEach(([symbol, ix]) => {
-        const cell_label = document.getElementById("oisc_cell_label_" + ix);
+        const cell_label = document.getElementById('oisc_cell_label_' + ix);
         if (cell_label) {
-            cell_label.innerHTML = ":"+symbol + " <br/> " + "(" + ix + ")";
+            cell_label.innerHTML = ':' + symbol + ' <br/> ' + '(' + ix + ')';
         }
     });
-    document.getElementsByClassName("oisc_cell_value").forEach((cell_value) => {
-        const ix = cell_value.id.split("_")[2];
+    document.getElementsByClassName('oisc_cell_value').forEach((cell_value) => {
+        const ix = cell_value.id.split('_')[2];
         cell_value.value = oisc_machine.symbols[ix];
     });
 }
@@ -72,31 +73,45 @@ function update_table_display(oisc_machine) {
 // The popup window lets you edit the symbol name, the value, and the callbacks.
 function show_config_window(e) {
     const cell_id = e.target.id;
-    const cell_ix = parseInt(cell_id.substring(cell_id.lastIndexOf("_")));
+    const cell_ix = parseInt(cell_id.substring(cell_id.lastIndexOf('_')));
     const cell_config = cell_ix in oisc_config ? oisc_config[cell_ix] : {};
-    const config_window = document.getElementById("oisc_config_window");
-    config_window.style.display = "block";
-    config_window.style.left = e.clientX + "px";
-    config_window.style.top = e.clientY + "px";
-    document.getElementById("oisc_config_name").value = cell_config.name ? cell_config.name : "";
-    document.getElementById("oisc_config_value").value = cell_config.value ? cell_config.value : "0";
-    document.getElementById("oisc_config_onread").value = cell_config.onread ? cell_config.onread : "";
-    document.getElementById("oisc_config_onwrite").value = cell_config.onwrite ? cell_config.onwrite : "";
+    const config_window = document.getElementById('oisc_config_window');
+    config_window.style.display = 'block';
+    config_window.style.left = e.clientX + 'px';
+    config_window.style.top = e.clientY + 'px';
+    document.getElementById('oisc_config_name').value = cell_config.name
+        ? cell_config.name
+        : '';
+    document.getElementById('oisc_config_value').value = cell_config.value
+        ? cell_config.value
+        : '0';
+    document.getElementById('oisc_config_onread').value = cell_config.onread
+        ? cell_config.onread
+        : '';
+    document.getElementById('oisc_config_onwrite').value = cell_config.onwrite
+        ? cell_config.onwrite
+        : '';
 }
 
 // Saves the configuration for the cell to oisc_config.
 function save_config_window() {
-    const cell_ix = parseInt(document.getElementById("oisc_config_window").id.substring(document.getElementById("oisc_config_window").id.lastIndexOf("_")));
+    const cell_ix = parseInt(
+        document
+            .getElementById('oisc_config_window')
+            .id.substring(
+                document
+                    .getElementById('oisc_config_window')
+                    .id.lastIndexOf('_')
+            )
+    );
     const cell_config = {
-        name: document.getElementById("oisc_config_name").value,
-        value: document.getElementById("oisc_config_value").value,
-        onread: document.getElementById("oisc_config_onread").value,
-        onwrite: document.getElementById("oisc_config_onwrite").value
+        name: document.getElementById('oisc_config_name').value,
+        value: document.getElementById('oisc_config_value').value,
+        onread: document.getElementById('oisc_config_onread').value,
+        onwrite: document.getElementById('oisc_config_onwrite').value,
     };
     oisc_config[cell_ix] = cell_config;
-    document.getElementById("oisc_config_window").style.display = "none";
+    document.getElementById('oisc_config_window').style.display = 'none';
 }
 
-function load_oisc() {
-    
-}
+function load_oisc() {}
