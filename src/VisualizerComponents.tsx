@@ -142,9 +142,8 @@ class OISCCell extends React.Component<CellProps> {
                             this.props.cell_index
                         ].toString()}
                         onChange={(e) => {
-                            this.props.machine.memory[
-                                this.props.cell_index
-                            ] = parseInt(e.target.value) || 0;
+                            this.props.machine.memory[this.props.cell_index] =
+                                parseInt(e.target.value) || 0;
                             this.props.onReloadRequest();
                         }}
                         contentEditable={
@@ -217,6 +216,7 @@ interface OVState {
 }
 
 export class OISCVisualizer extends React.Component<OVProps, OVState> {
+    protected timer: NodeJS.Timer | undefined;
     constructor(props: any) {
         super(props);
         this.state = {
@@ -249,6 +249,21 @@ export class OISCVisualizer extends React.Component<OVProps, OVState> {
         )(this.putchar, this.getchar);
     }
 
+    configure_run_timer() {
+        console.log('configure_run_timer');
+        clearInterval(this.timer);
+            this.timer = setInterval(() => {
+                console.log('step');
+                try {
+                    this.state.machine.step();
+                    this.setState({ step_count: this.state.step_count + 1 });
+                } catch (e) {
+                    clearInterval(this.timer);
+                    this.setState({ running: false });
+                }
+            }, this.state.step_delay_ms);
+    }
+
     renderControls(): React.ReactNode {
         return (
             <div className="OISCControls">
@@ -256,6 +271,13 @@ export class OISCVisualizer extends React.Component<OVProps, OVState> {
                     className="OISCControls-button"
                     onClick={() => {
                         this.setState({ running: !this.state.running });
+                        if (!this.state.running) {
+                            this.setState({ running: true });
+                            this.configure_run_timer();
+                        } else {
+                            clearInterval(this.timer);
+                            this.setState({ running: false });
+                        }
                     }}
                     disabled={this.state.machine.isDone()}
                 >
@@ -265,7 +287,9 @@ export class OISCVisualizer extends React.Component<OVProps, OVState> {
                     className="OISCControls-button"
                     onClick={() => {
                         this.state.machine.step();
-                        this.setState({});
+                        this.setState({
+                            step_count: this.state.step_count + 1,
+                        });
                     }}
                     disabled={this.state.machine.isDone()}
                 >
@@ -278,6 +302,8 @@ export class OISCVisualizer extends React.Component<OVProps, OVState> {
                             machine: new OISC(
                                 this.generateOISCConfig(this.state.config)
                             ),
+                            step_count: 0,
+                            running: false,
                         });
                     }}
                 >
@@ -292,6 +318,9 @@ export class OISCVisualizer extends React.Component<OVProps, OVState> {
                         this.setState({
                             step_delay_ms: parseInt(e.target.value),
                         });
+                        if (this.state.running) {
+                            this.configure_run_timer();
+                        }
                     }}
                 />
             </div>
