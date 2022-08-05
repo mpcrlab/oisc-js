@@ -71,11 +71,12 @@ class LazyListWithTriggers {
             },
             set: (llist: this, ix: string | number | symbol, value, proxy) => {
                 ix = ix in llist.symbols ? llist.symbols[ix as string] : ix;
-                if (ix in llist.write_callbacks) {
-                    llist.write_callbacks[ix as number].forEach((f) => {
-                        f(proxy, value);
-                    });
-                } else if (Number.isInteger(ix) || /^\d+$/.test(ix as string)) {
+                if (Number.isInteger(ix) || /^\d+$/.test(ix as string)) {
+                    if (ix in llist.write_callbacks) {
+                        llist.write_callbacks[ix as number].forEach((f) => {
+                            f(proxy, value);
+                        });
+                    }
                     llist.values[ix as number] = value;
                 } else {
                     throw new ReferenceError(`Unknown symbol: ${String(ix)}`);
@@ -154,7 +155,8 @@ export const oisc_default_config: OISCConfig = {
     6: { name: 'mul', onread: (memory) => memory['A'] * memory['B'] },
     7: {
         name: 'div',
-        onread: (memory) => memory['B'] != 0 ? Math.floor(memory['A'] / memory['B']) : 0,
+        onread: (memory) =>
+            memory['B'] != 0 ? Math.floor(memory['A'] / memory['B']) : 0,
     },
     8: { name: 'gt', onread: (memory) => (memory['A'] > memory['B'] ? 0 : -1) },
     9: { name: 'lt', onread: (memory) => (memory['A'] < memory['B'] ? 0 : -1) },
