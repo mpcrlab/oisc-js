@@ -160,45 +160,24 @@ class OISCCell extends React.Component<CellProps> {
 
 interface TableViewProps {
     machine: OISC;
-    rows: number;
-    cols: number;
+    cell_count: number;
 }
 
 class TableView extends React.Component<TableViewProps> {
     render() {
         return (
-            <table className="OISCMemory">
-                <tbody className="OISCMemory-body">
-                    {Array.from({ length: this.props.rows }).map(
-                        (_, row_index) => (
-                            <tr className="OISCMemory-row" key={row_index}>
-                                {Array.from({ length: this.props.cols }).map(
-                                    (_, col_index) => (
-                                        <td
-                                            key={
-                                                row_index * this.props.cols +
-                                                col_index
-                                            }
-                                        >
-                                            <OISCCell
-                                                machine={this.props.machine}
-                                                cell_index={
-                                                    row_index *
-                                                        this.props.cols +
-                                                    col_index
-                                                }
-                                                onReloadRequest={() => {
-                                                    this.setState({});
-                                                }}
-                                            />
-                                        </td>
-                                    )
-                                )}
-                            </tr>
-                        )
-                    )}
-                </tbody>
-            </table>
+            <div className="OISCMemory">
+                {Array.from({ length: this.props.cell_count }).map((_, ix) => (
+                    <OISCCell
+                        key={ix}
+                        machine={this.props.machine}
+                        cell_index={ix}
+                        onReloadRequest={() => {
+                            this.setState({});
+                        }}
+                    />
+                ))}
+            </div>
         );
     }
 }
@@ -252,16 +231,16 @@ export class OISCVisualizer extends React.Component<OVProps, OVState> {
     configure_run_timer() {
         console.log('configure_run_timer');
         clearInterval(this.timer);
-            this.timer = setInterval(() => {
-                console.log('step');
-                try {
-                    this.state.machine.step();
-                    this.setState({ step_count: this.state.step_count + 1 });
-                } catch (e) {
-                    clearInterval(this.timer);
-                    this.setState({ running: false });
-                }
-            }, this.state.step_delay_ms);
+        this.timer = setInterval(() => {
+            console.log('step');
+            try {
+                this.state.machine.step();
+                this.setState({ step_count: this.state.step_count + 1 });
+            } catch (e) {
+                clearInterval(this.timer);
+                this.setState({ running: false });
+            }
+        }, this.state.step_delay_ms);
     }
 
     renderControls(): React.ReactNode {
@@ -332,7 +311,7 @@ export class OISCVisualizer extends React.Component<OVProps, OVState> {
             <div className="OISCVisualizer">
                 {this.renderControls()}
 
-                <TableView machine={this.state.machine} rows={16} cols={16} />
+                <TableView machine={this.state.machine} cell_count={256} />
 
                 <OISCConfigEditor
                     default_config={oiscviz_default_config}

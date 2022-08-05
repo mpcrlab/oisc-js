@@ -1,5 +1,6 @@
 .App {
     text-align: center;
+    padding: 1em;
 }
 
 .App-header {
@@ -21,6 +22,7 @@
     width: 4em;
     height: 3em;
     padding: 0.2em;
+    margin: 0.2em; 
 }
 
 .oisc-cell-label {
@@ -28,7 +30,7 @@
     font-weight: bold;
     display: inline-block;
     align-items: center;
-    width: 50%;
+    width: 40%;
 }
 
 .oisc-cell-source-pointer {
@@ -63,15 +65,22 @@
     border-radius: 0;
     border: none;
     background-color: transparent;
-    width: 50%;
+    width: 60%;
     outline: none;
     color: #f8f8f2;
     font-size: 1em;
-    padding: 0.2em;
+    padding: 0.1em;
     text-align: center;
 }
 
-
+.OISCMemory {
+    width: 90%;
+    padding: 5%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: center;
+}
 
 
 /* Chrome, Safari, Edge, Opera */
