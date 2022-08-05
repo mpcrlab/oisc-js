@@ -18,9 +18,17 @@
     justify-content: space-between;
     align-items: center;
     border: #f8f8f2 1px solid;
-    width: auto;
-    height: auto;
+    width: 4em;
+    height: 3em;
     padding: 0.2em;
+}
+
+.oisc-cell-label {
+    font-size: 0.8em;
+    font-weight: bold;
+    display: inline-block;
+    align-items: center;
+    width: 50%;
 }
 
 .oisc-cell-source-pointer {
@@ -55,6 +63,25 @@
     border-radius: 0;
     border: none;
     background-color: transparent;
-    width: 4em;
+    width: 50%;
+    outline: none;
     color: #f8f8f2;
+    font-size: 1em;
+    padding: 0.2em;
+    text-align: center;
+}
+
+
+
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
 }

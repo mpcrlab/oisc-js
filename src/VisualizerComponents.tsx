@@ -10,7 +10,7 @@ import { OISC, OISCConfig } from './oisc';
 
 const oiscviz_default_config = `
 {
-    0: { name: 'ip', value: 16 },
+    0: { name: 'IP', value: 16 },
     1: { name: 'A', value: 0 },
     2: { name: 'B', value: 0 },
     3: { name: 'C', value: 0 },
@@ -19,7 +19,7 @@ const oiscviz_default_config = `
     6: { name: 'mul', onread: (memory) => memory['A'] * memory['B'] },
     7: {
         name: 'div',
-        onread: (memory) => Math.floor(memory['A'] / memory['B']),
+        onread: (memory) => memory['B'] != 0 ? Math.floor(memory['A'] / memory['B']) : 0,
     },
     8: { name: 'gt', onread: (memory) => (memory['A'] > memory['B'] ? 0 : -1) },
     9: { name: 'lt', onread: (memory) => (memory['A'] < memory['B'] ? 0 : -1) },
@@ -27,9 +27,9 @@ const oiscviz_default_config = `
         name: 'eq',
         onread: (memory) => (memory['A'] == memory['B'] ? 0 : -1),
     },
-    11: { name: 'input', onread: (memory) => getchar() },
+    11: { name: 'in', onread: (memory) => getchar() },
     12: {
-        name: 'outchar',
+        name: 'out',
         onwrite: (memory, value) => {
             putchar(value);
         },
@@ -37,7 +37,7 @@ const oiscviz_default_config = `
     13: { name: 'not', onread: (memory) => (memory['C'] == 0 ? -1 : 0) },
     14: { name: 'xor', onread: (memory) => memory['A'] ^ memory['B'] },
     15: {
-        name: 'ternary',
+        name: 'ter',
         onread: (memory) => (memory['C'] == 0 ? memory['A'] : memory['B']),
     },
     16: { values: [18, 0] },
@@ -144,7 +144,7 @@ class OISCCell extends React.Component<CellProps> {
                         onChange={(e) => {
                             this.props.machine.memory[
                                 this.props.cell_index
-                            ] = parseInt(e.target.value);
+                            ] = parseInt(e.target.value) || 0;
                             this.props.onReloadRequest();
                         }}
                         contentEditable={

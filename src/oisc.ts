@@ -154,7 +154,7 @@ export const oisc_default_config: OISCConfig = {
     6: { name: 'mul', onread: (memory) => memory['A'] * memory['B'] },
     7: {
         name: 'div',
-        onread: (memory) => Math.floor(memory['A'] / memory['B']),
+        onread: (memory) => memory['B'] != 0 ? Math.floor(memory['A'] / memory['B']) : 0,
     },
     8: { name: 'gt', onread: (memory) => (memory['A'] > memory['B'] ? 0 : -1) },
     9: { name: 'lt', onread: (memory) => (memory['A'] < memory['B'] ? 0 : -1) },
