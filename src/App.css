@@ -19,7 +19,7 @@
     justify-content: space-between;
     align-items: center;
     border: #f8f8f2 1px solid;
-    width: 4em;
+    width: 5em;
     height: 3em;
     padding: 0.2em;
     margin: 0.2em; 
@@ -65,7 +65,7 @@
     border-radius: 0;
     border: none;
     background-color: transparent;
-    width: 60%;
+    width: 70%;
     outline: none;
     color: #f8f8f2;
     font-size: 1em;

@@ -5,47 +5,11 @@ import Editor from 'react-simple-code-editor';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism-solarizedlight.css';
 import Collapsible from 'react-collapsible';
+import { example_programs } from './example_programs';
 
 import { OISC, OISCConfig } from './oisc';
 
-const oiscviz_default_config = `
-{
-    0: { name: 'IP', value: 16 },
-    1: { name: 'A', value: 0 },
-    2: { name: 'B', value: 0 },
-    3: { name: 'C', value: 0 },
-    4: { name: 'add', onread: (memory) => memory['A'] + memory['B'] },
-    5: { name: 'sub', onread: (memory) => memory['A'] - memory['B'] },
-    6: { name: 'mul', onread: (memory) => memory['A'] * memory['B'] },
-    7: {
-        name: 'div',
-        onread: (memory) => memory['B'] != 0 ? Math.floor(memory['A'] / memory['B']) : 0,
-    },
-    8: { name: 'gt', onread: (memory) => (memory['A'] > memory['B'] ? 0 : -1) },
-    9: { name: 'lt', onread: (memory) => (memory['A'] < memory['B'] ? 0 : -1) },
-    10: {
-        name: 'eq',
-        onread: (memory) => (memory['A'] == memory['B'] ? 0 : -1),
-    },
-    11: { name: 'in', onread: (memory) => getchar() },
-    12: {
-        name: 'out',
-        onwrite: (memory, value) => {
-            putchar(value);
-        },
-    },
-    13: { name: 'not', onread: (memory) => (memory['C'] == 0 ? -1 : 0) },
-    14: { name: 'xor', onread: (memory) => memory['A'] ^ memory['B'] },
-    15: {
-        name: 'ter',
-        onread: (memory) => (memory['C'] == 0 ? memory['A'] : memory['B']),
-    },
-    16: { values: [18, 0] },
-}
-`;
-
 interface EditorProps {
-    default_config: string;
     onUpdate: (config: string) => void;
 }
 
@@ -57,7 +21,7 @@ class OISCConfigEditor extends React.Component<EditorProps, EditorState> {
     constructor(props: any) {
         super(props);
         this.state = {
-            code: props.default_config,
+            code: example_programs.base,
         };
     }
 
@@ -78,14 +42,16 @@ class OISCConfigEditor extends React.Component<EditorProps, EditorState> {
                 <button onClick={() => this.props.onUpdate(this.state.code)}>
                     Update
                 </button>
-                <button
-                    onClick={() => {
-                        this.setState({ code: oiscviz_default_config });
-                        this.props.onUpdate(oiscviz_default_config);
-                    }}
-                >
-                    Reset
-                </button>
+                <select onChange={(e: any) => {
+                    console.log(e.target.value);
+                    if (e.target.value !== '-- Select a program --') {
+                        this.props.onUpdate(e.target.value);
+                        this.setState({ code: e.target.value });
+                    }
+                }}> 
+      <option value="-- Select a program --"> -- Select a program -- </option>
+      {Object.entries(example_programs).map(([name, code], ix) => <option value={code} key={ix}>{name}</option>)}
+    </select>
             </Collapsible>
         );
     }
@@ -199,8 +165,8 @@ export class OISCVisualizer extends React.Component<OVProps, OVState> {
     constructor(props: any) {
         super(props);
         this.state = {
-            machine: new OISC(this.generateOISCConfig(oiscviz_default_config)),
-            config: oiscviz_default_config,
+            machine: new OISC(this.generateOISCConfig(example_programs.base)),
+            config: example_programs.base,
             running: false,
             step_count: 0,
             step_delay_ms: 400,
@@ -314,7 +280,6 @@ export class OISCVisualizer extends React.Component<OVProps, OVState> {
                 <TableView machine={this.state.machine} cell_count={256} />
 
                 <OISCConfigEditor
-                    default_config={oiscviz_default_config}
                     onUpdate={(config: string) =>
                         this.setState({
                             config: config,
