@@ -25,16 +25,22 @@ type LazyMemWriteCallback = (
 type LazyMemReadCallback = (memory: LazyListWithTriggers) => number;
 
 class LazyListWithTriggers {
+    [key: number | string]: number;
+    // @ts-ignore
     public values: Record<number, number>;
+    // @ts-ignore
     public symbols: Record<string, number>;
+    // @ts-ignore
     public read_callbacks: Record<number, LazyMemReadCallback>;
-    public write_callbacks: Record<number, LazyMemWriteCallback>;
+    // @ts-ignore
+    public write_callbacks: Record<number, LazyMemWriteCallback[]>;
+    // @ts-ignore
     public symbols_of_ix: Record<number, string[]>;
     constructor(
         values = {} as Record<number, number>,
         symbols = {} as Record<string, number>,
         read_callbacks = {} as Record<number, LazyMemReadCallback>,
-        write_callbacks = {} as Record<number, LazyMemWriteCallback>
+        write_callbacks = {} as Record<number, LazyMemWriteCallback[]>
     ) {
         this.values = values;
         this.read_callbacks = read_callbacks;
@@ -52,13 +58,13 @@ class LazyListWithTriggers {
             get: (llist: this, ix: string | number | symbol, proxy) => {
                 ix = ix in llist.symbols ? llist.symbols[ix as string] : ix;
                 if (ix in llist.read_callbacks) {
-                    return llist.read_callbacks[ix](proxy);
+                    return llist.read_callbacks[ix as number](proxy);
                 } else if (ix in llist.values) {
-                    return llist.values[ix];
+                    return llist.values[ix as number];
                 } else if (Number.isInteger(ix) || /^\d+$/.test(ix as string)) {
                     return 0;
                 } else if (ix in llist) {
-                    return llist[ix];
+                    return llist[ix as string];
                 } else {
                     throw new ReferenceError(`Unknown symbol: ${String(ix)}`);
                 }
@@ -66,11 +72,11 @@ class LazyListWithTriggers {
             set: (llist: this, ix: string | number | symbol, value, proxy) => {
                 ix = ix in llist.symbols ? llist.symbols[ix as string] : ix;
                 if (ix in llist.write_callbacks) {
-                    llist.write_callbacks[ix].forEach((f) => {
+                    llist.write_callbacks[ix as number].forEach((f) => {
                         f(proxy, value);
                     });
                 } else if (Number.isInteger(ix) || /^\d+$/.test(ix as string)) {
-                    llist.values[ix] = value;
+                    llist.values[ix as number] = value;
                 } else {
                     throw new ReferenceError(`Unknown symbol: ${String(ix)}`);
                 }
@@ -87,27 +93,30 @@ class LazyListWithTriggers {
         });
     }
 
+    // @ts-ignore
     register_read_callback(ix: string | number, callback: LazyMemReadCallback) {
         ix = ix in this.symbols ? this.symbols[ix] : ix;
-        this.read_callbacks[ix] = callback;
+        this.read_callbacks[ix as number] = callback;
     }
+    // @ts-ignore
     register_write_callbacks(
         ix: string | number,
         callbacks: LazyMemWriteCallback | LazyMemWriteCallback[],
         overwrite: boolean = false
     ) {
-        if (typeof callbacks !== 'Array') {
-            callbacks = [callbacks];
-        }
+        // @ts-ignore
+        callbacks = (typeof callbacks !== 'Array'
+            ? [callbacks]
+            : callbacks) as LazyMemWriteCallback[];
         ix = ix in this.symbols ? this.symbols[ix] : ix;
         if (ix in this.write_callbacks && !overwrite) {
-            this.write_callbacks[ix] = this.write_callbacks[ix].concat(
-                callbacks
-            );
-        } else {
-            this.write_callbacks[ix] = callbacks;
+            callbacks.push(...this.write_callbacks[ix as number]);
         }
+        this.write_callbacks[
+            ix as number
+        ] = callbacks as LazyMemWriteCallback[];
     }
+    // @ts-ignore
     register_symbol(name: string, ix: number) {
         this.symbols[name] = ix;
         if (ix in this.symbols_of_ix) {
@@ -122,15 +131,13 @@ interface MemCellConfig {
     name?: string;
     symbol?: string;
     symbols?: string[] | string;
-    value?: number | LazyMemReadCallback;
-    values?: number[] | number;
+    value?: number | string | LazyMemReadCallback;
+    values?: (number | string)[] | number;
     onread?: LazyMemReadCallback;
     onwrite?: LazyMemWriteCallback | LazyMemWriteCallback[];
 }
 
-interface OISCConfig {
-    [key: number]: MemCellConfig;
-}
+export type OISCConfig = Record<number, MemCellConfig | number | number[]>;
 
 export const oisc_default_config: OISCConfig = {
     0: { name: 'ip', value: 16 },
@@ -140,7 +147,7 @@ export const oisc_default_config: OISCConfig = {
     4: {
         name: 'add',
         onread: (memory) => {
-            return memory['A'] + memory['B'];
+            return (memory['A'] as number) + (memory['B'] as number);
         },
     },
     5: { name: 'sub', onread: (memory) => memory['A'] - memory['B'] },
@@ -168,84 +175,142 @@ export const oisc_default_config: OISCConfig = {
         name: 'ternary',
         onread: (memory) => (memory['C'] == 0 ? memory['A'] : memory['B']),
     },
-    16: { values: [19, 0] },
+    16: { values: [18, 0] },
 };
 
 export class OISC {
     public memory: LazyListWithTriggers;
-    constructor(oisc_config = oisc_default_config) {
+    constructor(oisc_config: OISCConfig = oisc_default_config) {
         this.memory = new LazyListWithTriggers();
-        Object.entries(oisc_config).forEach(([ix, config]) => {
-            this.configure(ix, config);
-        });
+        for (let ix in oisc_config) {
+            // @ts-ignore
+            this.configure(ix, oisc_config[ix]);
+        }
     }
 
-    register_read_callback(ix, callback) {
+    register_read_callback(ix: string | number, callback: LazyMemReadCallback) {
         this.memory.register_read_callback(ix, callback);
     }
-    register_write_callbacks(ix, callbacks, overwrite = false) {
+    register_write_callbacks(
+        ix: string | number,
+        callbacks: LazyMemWriteCallback | LazyMemWriteCallback[],
+        overwrite: boolean = false
+    ) {
         this.memory.register_write_callbacks(ix, callbacks, overwrite);
     }
-    register_write_callback(ix, callback, overwrite = false) {
+    register_write_callback(
+        ix: string | number,
+        callback: LazyMemWriteCallback,
+        overwrite: boolean = false
+    ) {
         this.memory.register_write_callbacks(ix, callback, overwrite);
     }
 
-    configure(ix, config) {
-        if ('name' in config) {
+    configure(ix: number, config: MemCellConfig | number | number[]) {
+        if (typeof config === 'number') {
+            config = { value: config };
+        } else if (Array.isArray(config)) {
+            config = { values: config };
+        }
+        if (typeof config.name === 'string') {
             this.memory.register_symbol(config.name, ix);
         }
-        if ('symbol' in config) {
+        if (typeof config.symbol === 'string') {
             this.memory.register_symbol(config.symbol, ix);
         }
-        if ('symbols' in config) {
-            config.symbols.forEach((symbol) => {
+        if (Array.isArray(config.symbols)) {
+            config.symbols.forEach((symbol: string) => {
                 this.memory.register_symbol(symbol, ix);
             });
         }
-        if ('onread' in config) {
+        if (config.onread !== undefined) {
             this.memory.register_read_callback(ix, config.onread);
         }
-        if ('onwrite' in config) {
-            this.memory.register_write_callbacks(
-                ix,
-                config.onwrite,
-                true
-            );
+        if (config.onwrite !== undefined) {
+            this.memory.register_write_callbacks(ix, config.onwrite, true);
         }
-        if ('value' in config) {
-            if (typeof config.value == 'function') {
-                this.memory.register_read_callback(ix, config.value);
+        if (typeof config.value == 'function') {
+            this.memory.register_read_callback(ix, config.value);
+        } else if (typeof config.value === 'number') {
+            this.memory[ix] = config.value;
+        } else if (typeof config.value === 'string') {
+            if (/^\d+$/.test(config.value)) {
+                this.memory[ix] = parseInt(config.value);
+            } else if (config.value.length === 1) {
+                this.memory[ix] = config.value.charCodeAt(0);
+            } else if (
+                config.value.startsWith('@') &&
+                config.value.slice(1) in this.memory.symbols
+            ) {
+                this.memory[ix] = this.memory.symbols[config.value.slice(1)];
             } else {
-                this.memory[ix] = config.value;
+                throw new Error('String must be a single character');
             }
         }
-        if ('values' in config) {
-            if (typeof config.values !== 'Array') {
+
+        if (config.values !== undefined) {
+            if (!Array.isArray(config.values)) {
                 config.values = [config.values];
             }
-            for (let i = 0; i < config.values.length; i++) {
-                this.memory[Number.parseInt(ix) + i] = config.values[i];
+            if (typeof ix === 'string') {
+                ix = parseInt(ix);
             }
+
+            config.values.forEach((value: number | string, i: number) => {
+                if (typeof value === 'number') {
+                    this.memory[ix + i] = value;
+                } else if (typeof value === 'string') {
+                    console.log(value);
+                    if (/^\d+$/.test(value)) {
+                        this.memory[ix] = parseInt(value);
+                    } else if (value.length === 1) {
+                        this.memory[ix + i] = value.charCodeAt(0);
+                    } else if (
+                        value.startsWith('@') &&
+                        value.slice(1) in this.memory.symbols
+                    ) {
+                        this.memory[ix + i] = this.memory.symbols[
+                            value.slice(1)
+                        ];
+                    } else {
+                        throw new Error('String must be a single character');
+                    }
+                }
+            });
         }
     }
 
     export_config(include_callbacks = true) {
-        let config = {};
+        let config = {} as OISCConfig;
         for (let ix in this.memory.values) {
-            config[ix] = { value: this.memory[ix] };
+            let cell_config: MemCellConfig = { value: this.memory[ix] };
             if (ix in this.memory.symbols_of_ix) {
                 if (this.memory.symbols_of_ix[ix].length > 1) {
-                    config[ix].symbols = this.memory.symbols_of_ix[ix];
+                    cell_config.symbols = this.memory.symbols_of_ix[ix];
                 } else {
-                    config[ix].symbol = this.memory.symbols_of_ix[ix][0];
+                    cell_config.symbol = this.memory.symbols_of_ix[ix][0];
                 }
             }
-            if (ix in this.memory.read_callbacks && include_callbacks) {
-                config[ix].onread = this.memory.read_callbacks[ix];
+            if (ix in this.memory.write_callbacks && include_callbacks) {
+                cell_config.onwrite = this.memory.write_callbacks[ix];
+            }
+            config[ix] = cell_config;
+        }
+        for (let ix in this.memory.read_callbacks) {
+            let cell_config: MemCellConfig = {
+                onread: this.memory.read_callbacks[ix],
+            };
+            if (ix in this.memory.symbols_of_ix) {
+                if (this.memory.symbols_of_ix[ix].length > 1) {
+                    cell_config.symbols = this.memory.symbols_of_ix[ix];
+                } else {
+                    cell_config.symbol = this.memory.symbols_of_ix[ix][0];
+                }
             }
             if (ix in this.memory.write_callbacks && include_callbacks) {
-                config[ix].onwrite = this.memory.write_callbacks[ix];
+                cell_config.onwrite = this.memory.write_callbacks[ix];
             }
+            config[ix] = cell_config;
         }
         return config;
     }
@@ -258,8 +323,10 @@ export class OISC {
         if (this.isDone()) {
             throw new Error('Program has ended');
         } else {
-            this.memory[this.memory[0]] = this.memory[this.memory[0] + 1];
             this.memory[0] += 2;
+            this.memory[this.memory[this.memory[0] - 1]] = this.memory[
+                this.memory[this.memory[0] - 2]
+            ];
         }
     }
 

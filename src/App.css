@@ -1,0 +1,60 @@
+.App {
+    text-align: center;
+}
+
+.App-header {
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+.App-intro {
+    font-size: 1em;
+    font-style: italic;
+}
+
+.oisc-cell {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    border: #f8f8f2 1px solid;
+    width: auto;
+    height: auto;
+    padding: 0.2em;
+}
+
+.oisc-cell-source-pointer {
+    background-color: #7e4a4a;
+}
+
+.oisc-value-input.oisc-cell-source-pointer {
+    font-weight: bold;
+}
+
+.oisc-cell-target-pointer {
+    background-color: #3f7152;
+}
+
+.oisc-value-input.oisc-cell-target-pointer {
+    font-weight: bold;
+}
+
+.oisc-cell-source {
+    background-color: #cb4d4d;
+}
+
+.oisc-cell-target {
+    background-color: #2d9a56;
+}
+
+.oisc-cell-empty {
+    opacity: 0.5;
+}
+
+.oisc-value-input {
+    border-radius: 0;
+    border: none;
+    background-color: transparent;
+    width: 4em;
+    color: #f8f8f2;
+}
