@@ -42,17 +42,98 @@ class OISCConfigEditor extends React.Component<EditorProps, EditorState> {
                 <button onClick={() => this.props.onUpdate(this.state.code)}>
                     Update
                 </button>
-                <select onChange={(e: any) => {
-                    console.log(e.target.value);
-                    if (e.target.value !== '-- Select a program --') {
-                        this.props.onUpdate(e.target.value);
-                        this.setState({ code: e.target.value });
-                    }
-                }}> 
-      <option value="-- Select a program --"> -- Select a program -- </option>
-      {Object.entries(example_programs).map(([name, code], ix) => <option value={code} key={ix}>{name}</option>)}
-    </select>
+                <select
+                    onChange={(e: any) => {
+                        if (e.target.value !== '-- Select a program --') {
+                            this.props.onUpdate(e.target.value);
+                            this.setState({ code: e.target.value });
+                        }
+                    }}
+                >
+                    <option value="-- Select a program --">
+                        -- Select a program --
+                    </option>
+                    {Object.entries(example_programs).map(([name, code]) => (
+                        <option value={code} key={name}>
+                            {name}
+                        </option>
+                    ))}
+                </select>
             </Collapsible>
+        );
+    }
+}
+
+class IOStream {
+    public get: () => string;
+    public set: (s: string) => void;
+    public clear: () => void;
+    public readonly: boolean;
+    public value: string = '';
+    public readonly name: string;
+    constructor({
+        name,
+        value = '',
+        readonly = false,
+    }: {
+        name: string;
+        value?: string | (() => string);
+        readonly?: boolean;
+    }) {
+        if (typeof value === 'string') {
+            this.value = value;
+            this.get = () => this.value;
+        } else {
+            this.get = value;
+        }
+        this.set = (s: string) => {
+            this.value = s;
+        };
+        this.clear = () => {
+            this.set('');
+        };
+        this.name = name;
+        this.readonly = readonly;
+    }
+}
+
+interface IOBarProps {
+    streams: IOStream[];
+}
+
+class IOBar extends React.Component<IOBarProps> {
+    render() {
+        return (
+            <div className="IODisplay">
+                {this.props.streams.map((stream) => {
+                    if (!stream.readonly) {
+                        stream.set = (s: string) => {
+                            stream.value = s;
+                            this.setState({});
+                        };
+                    }
+                    return (
+                        <div
+                            className={
+                                'IOStream ' + (stream.readonly
+                                    ? 'readonly '
+                                    : '') + stream.name
+                            }
+                            key={stream.name}
+                        >
+                            <div className={"IOBarLabel " + stream.name}>{stream.name}</div>
+                            <textarea
+                                className={"IOBarInput " + (stream.readonly ? 'readonly ' : '') + stream.name}
+                                onChange={(e) => {
+                                    stream.set(e.target.value);
+                                }}
+                                value={stream.get()}
+                                readOnly={stream.readonly}
+                            ></textarea>
+                        </div>
+                    );
+                })}
+            </div>
         );
     }
 }
@@ -71,16 +152,16 @@ class OISCCell extends React.Component<CellProps> {
             classNames += ' oisc-cell-target-pointer';
         } else if (
             this.props.cell_index ==
-            this.props.machine.memory[this.props.machine.memory[0]]
+            this.props.machine.memory._cached[this.props.machine.memory[0]]
         ) {
             classNames += ' oisc-cell-source';
         } else if (
             this.props.cell_index ==
-            this.props.machine.memory[this.props.machine.memory[0] + 1]
+            this.props.machine.memory._cached[this.props.machine.memory[0] + 1]
         ) {
             classNames += ' oisc-cell-target';
         } else if (
-            this.props.machine.memory[this.props.cell_index] == 0 &&
+            this.props.machine.memory._cached[this.props.cell_index] == 0 &&
             this.props.machine.memory.symbols_of_ix[this.props.cell_index] ==
                 null
         ) {
@@ -104,12 +185,15 @@ class OISCCell extends React.Component<CellProps> {
                     <input
                         className={'oisc-value-input' + classNames}
                         type="number"
-                        value={this.props.machine.memory[
-                            this.props.cell_index
-                        ].toString()}
+                        value={
+                            this.props.machine.memory._cached[
+                                this.props.cell_index
+                            ] || 0
+                        }
                         onChange={(e) => {
-                            this.props.machine.memory[this.props.cell_index] =
-                                parseInt(e.target.value) || 0;
+                            this.props.machine.memory._cached[
+                                this.props.cell_index
+                            ] = parseInt(e.target.value) || 0;
                             this.props.onReloadRequest();
                         }}
                         contentEditable={
@@ -156,12 +240,14 @@ interface OVState {
     running: boolean;
     step_count: number;
     step_delay_ms: number;
-    stdin: string;
-    stdout: string;
 }
 
 export class OISCVisualizer extends React.Component<OVProps, OVState> {
     protected timer: NodeJS.Timer | undefined;
+    private io: IOStream[] = [
+        new IOStream({ name: 'stdin' }),
+        new IOStream({ name: 'stdout', readonly: true }),
+    ];
     constructor(props: any) {
         super(props);
         this.state = {
@@ -170,35 +256,19 @@ export class OISCVisualizer extends React.Component<OVProps, OVState> {
             running: false,
             step_count: 0,
             step_delay_ms: 400,
-            stdin: '',
-            stdout: '',
         };
     }
 
-    putchar(ch: number) {
-        this.setState({ stdout: this.state.stdout + String.fromCharCode(ch) });
-    }
-
-    getchar(): number {
-        //let inputChar = this.state.stdin.charCodeAt(0);
-        //this.setState({ stdin: this.state.stdin.substring(1) });
-        //return inputChar;
-        return 0;
-    }
-
     generateOISCConfig(config: string): OISCConfig {
-        return Function(
-            'putchar',
-            'getchar',
-            'return (' + config + ');'
-        )(this.putchar, this.getchar);
+        if (!config.match(/.*;\s*$/s)) {
+            config = '(' + config + ')';
+        }
+        return Function('This', config)(this);
     }
 
     configure_run_timer() {
-        console.log('configure_run_timer');
         clearInterval(this.timer);
         this.timer = setInterval(() => {
-            console.log('step');
             try {
                 this.state.machine.step();
                 this.setState({ step_count: this.state.step_count + 1 });
@@ -243,6 +313,9 @@ export class OISCVisualizer extends React.Component<OVProps, OVState> {
                 <button
                     className="OISCControls-button"
                     onClick={() => {
+                        this.io.forEach((stream) => {
+                            stream.clear();
+                        });
                         this.setState({
                             machine: new OISC(
                                 this.generateOISCConfig(this.state.config)
@@ -276,7 +349,7 @@ export class OISCVisualizer extends React.Component<OVProps, OVState> {
         return (
             <div className="OISCVisualizer">
                 {this.renderControls()}
-
+                <IOBar streams={this.io} />
                 <TableView machine={this.state.machine} cell_count={256} />
 
                 <OISCConfigEditor

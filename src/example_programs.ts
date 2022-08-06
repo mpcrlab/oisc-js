@@ -17,11 +17,15 @@ export const oiscviz_default_config = `
         name: 'eq',
         onread: (memory) => (memory['A'] == memory['B'] ? 0 : -1),
     },
-    11: { name: 'in', onread: (memory) => getchar() },
+    11: { name: 'in', onread: (memory) => {
+        let c = This.io[0].get().charCodeAt(0) || 0;
+        This.io[0].set(This.io[0].get().slice(1));
+        return c;
+    } },
     12: {
         name: 'out',
         onwrite: (memory, value) => {
-            putchar(value);
+            This.io[1].set(This.io[1].get() + String.fromCharCode(value));
         },
     },
     13: { name: 'not', onread: (memory) => (memory['C'] == 0 ? -1 : 0) },
@@ -35,8 +39,10 @@ export const oiscviz_default_config = `
 `;
 
 export const example_programs = {
-    'base': oiscviz_default_config,
-    'two_plus_two': oiscviz_default_config.slice(0,-2) + `
+    base: oiscviz_default_config,
+    two_plus_two:
+        oiscviz_default_config.slice(0, -2) +
+        `
     // start at address 32
     18: 32,
     // data section
@@ -52,7 +58,9 @@ export const example_programs = {
     // halt instruction
     38: [41,1,41,0],
 }`,
-    'fibonacci': oiscviz_default_config.slice(0,-2) + `
+    fibonacci:
+        oiscviz_default_config.slice(0, -2) +
+        `
     // start at address 24
     18: 24,
     // data section
@@ -77,4 +85,19 @@ export const example_programs = {
         44, 0, 24,
     ],
 }`,
-}
+    echo:
+        `
+let halt = () => ix => [ix+3,1,ix+3,0];
+let jmp = addr => ix => [ix+2,0,addr];
+let bne = addr => ix => [ix+6,1,ix+7,2,15,0,ix+8,addr];
+return {
+` +
+        oiscviz_default_config.slice(2, -2) +
+        `
+    18: 24,
+    22: ['@C', '@out' ],
+    24: [ '@in', '@C' ],
+    26: bne(22),
+    34: halt(),
+};`,
+};

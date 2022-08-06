@@ -36,6 +36,8 @@ class LazyListWithTriggers {
     public write_callbacks: Record<number, LazyMemWriteCallback[]>;
     // @ts-ignore
     public symbols_of_ix: Record<number, string[]>;
+    // @ts-ignore
+    public _cached: Record<number, number>;
     constructor(
         values = {} as Record<number, number>,
         symbols = {} as Record<string, number>,
@@ -47,6 +49,7 @@ class LazyListWithTriggers {
         this.write_callbacks = write_callbacks;
         this.symbols = symbols;
         this.symbols_of_ix = {};
+        this._cached = values;
         for (let [name, ix] of Object.entries(symbols)) {
             if (ix in this.symbols_of_ix) {
                 this.symbols_of_ix[ix].push(name);
@@ -58,7 +61,10 @@ class LazyListWithTriggers {
             get: (llist: this, ix: string | number | symbol, proxy) => {
                 ix = ix in llist.symbols ? llist.symbols[ix as string] : ix;
                 if (ix in llist.read_callbacks) {
-                    return llist.read_callbacks[ix as number](proxy);
+                    llist._cached[ix as number] = llist.read_callbacks[
+                        ix as number
+                    ](proxy);
+                    return llist._cached[ix as number];
                 } else if (ix in llist.values) {
                     return llist.values[ix as number];
                 } else if (Number.isInteger(ix) || /^\d+$/.test(ix as string)) {
@@ -72,12 +78,13 @@ class LazyListWithTriggers {
             set: (llist: this, ix: string | number | symbol, value, proxy) => {
                 ix = ix in llist.symbols ? llist.symbols[ix as string] : ix;
                 if (Number.isInteger(ix) || /^\d+$/.test(ix as string)) {
+                    llist._cached[ix as number] = value;
+                    llist.values[ix as number] = value;
                     if (ix in llist.write_callbacks) {
                         llist.write_callbacks[ix as number].forEach((f) => {
                             f(proxy, value);
                         });
                     }
-                    llist.values[ix as number] = value;
                 } else {
                     throw new ReferenceError(`Unknown symbol: ${String(ix)}`);
                 }
@@ -133,7 +140,10 @@ interface MemCellConfig {
     symbol?: string;
     symbols?: string[] | string;
     value?: number | string | LazyMemReadCallback;
-    values?: (number | string)[] | number;
+    values?:
+        | (number | string)[]
+        | number
+        | ((ix: number) => (number | string)[] | number);
     onread?: LazyMemReadCallback;
     onwrite?: LazyMemWriteCallback | LazyMemWriteCallback[];
 }
@@ -208,10 +218,19 @@ export class OISC {
         this.memory.register_write_callbacks(ix, callback, overwrite);
     }
 
-    configure(ix: number, config: MemCellConfig | number | number[]) {
-        if (typeof config === 'number') {
-            config = { value: config };
-        } else if (Array.isArray(config)) {
+    configure(
+        ix: number,
+        config:
+            | MemCellConfig
+            | number
+            | number[]
+            | ((ix: number) => (number | string)[] | number)
+    ): void {
+        if (
+            typeof config === 'number' ||
+            typeof config === 'function' ||
+            Array.isArray(config)
+        ) {
             config = { values: config };
         }
         if (typeof config.name === 'string') {
@@ -251,22 +270,28 @@ export class OISC {
         }
 
         if (config.values !== undefined) {
-            if (!Array.isArray(config.values)) {
-                config.values = [config.values];
-            }
             if (typeof ix === 'string') {
                 ix = parseInt(ix);
+            }
+            if (typeof config.values === 'function') {
+                config.values = config.values(ix);
+            }
+            if (!Array.isArray(config.values)) {
+                config.values = [config.values];
             }
 
             config.values.forEach((value: number | string, i: number) => {
                 if (typeof value === 'number') {
                     this.memory[ix + i] = value;
                 } else if (typeof value === 'string') {
-                    console.log(value);
                     if (/^\d+$/.test(value)) {
                         this.memory[ix] = parseInt(value);
-                    } else if (value.length === 1) {
+                    } else if (value.length == 1) {
                         this.memory[ix + i] = value.charCodeAt(0);
+                    } else if (value.startsWith('^') && value.length == 2) {
+                        this.memory[ix + i] = this.memory.symbols[
+                            value.charCodeAt(1)
+                        ];
                     } else if (
                         value.startsWith('@') &&
                         value.slice(1) in this.memory.symbols

@@ -13,6 +13,19 @@
     font-style: italic;
 }
 
+.IOBar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.IOBarInput {
+    width: 80%;
+    resize: none;
+}
+.IOBarInput.stdout {
+    height: 8ex;
+}
+
 .oisc-cell {
     display: flex;
     flex-direction: row;
