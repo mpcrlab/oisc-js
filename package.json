@@ -8,6 +8,7 @@
         "@testing-library/user-event": "^13.5.0",
         "@types/jest": "^27.5.2",
         "@types/node": "^16.11.45",
+        "@types/prismjs": "^1.26.0",
         "@types/react": "^18.0.15",
         "@types/react-dom": "^18.0.6",
         "prismjs": "^1.28.0",

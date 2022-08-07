@@ -17,6 +17,15 @@
 //  along with this program.  If not, see <https://www.gnu.org/licenses/>
 // ----------------------------------------------------------------------------
 // Language: typescript
+// Path: src/oisc.ts
+
+/**
+ * MPCR OISC (oisc.ts)
+ * @fileoverview This file contains the implementation of the MPCR OISC Architecture.
+ * @author Misha Klopukh
+ * @license GPL-3.0-or-later
+ */
+
 
 type LazyMemWriteCallback = (
     memory: LazyListWithTriggers,

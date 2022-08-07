@@ -1,0 +1,31 @@
+name: DeployPages
+
+on:
+    push:
+        branches:
+            - master
+
+permissions:
+    contents: write
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Pull Code
+              uses: actions/checkout@v3
+
+            - name: Install Node.js
+              uses: actions/setup-node@v3.4.1
+
+            - name: Install Node Packages
+              run: npm ci
+
+            - name: Build Webapp
+              run: npm run build
+
+            - name: Deploy to Pages
+              uses: JamesIves/github-pages-deploy-action@v4.4.0
+              with:
+                  folder: build
