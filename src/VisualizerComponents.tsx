@@ -15,6 +15,7 @@ interface EditorProps {
 
 interface EditorState {
     code: string;
+    preset: string;
 }
 
 class OISCConfigEditor extends React.Component<EditorProps, EditorState> {
@@ -22,6 +23,7 @@ class OISCConfigEditor extends React.Component<EditorProps, EditorState> {
         super(props);
         this.state = {
             code: example_programs.base,
+            preset: 'base',
         };
     }
 
@@ -30,7 +32,9 @@ class OISCConfigEditor extends React.Component<EditorProps, EditorState> {
             <Collapsible trigger="Edit Configuration">
                 <Editor
                     value={this.state.code}
-                    onValueChange={(code) => this.setState({ code: code })}
+                    onValueChange={(code) =>
+                        this.setState({ code: code, preset: 'custom' })
+                    }
                     highlight={(code) =>
                         Prism.highlight(
                             code,
@@ -43,18 +47,22 @@ class OISCConfigEditor extends React.Component<EditorProps, EditorState> {
                     Update
                 </button>
                 <select
+                    value={this.state.preset}
                     onChange={(e: any) => {
-                        if (e.target.value !== '-- Select a program --') {
-                            this.props.onUpdate(e.target.value);
-                            this.setState({ code: e.target.value });
+                        if (e.target.value in example_programs) {
+                            this.props.onUpdate(
+                                example_programs[e.target.value]
+                            );
+                            this.setState({
+                                code: example_programs[e.target.value],
+                            });
                         }
+                        this.setState({ preset: e.target.value });
                     }}
                 >
-                    <option value="-- Select a program --">
-                        -- Select a program --
-                    </option>
-                    {Object.entries(example_programs).map(([name, code]) => (
-                        <option value={code} key={name}>
+                    <option value="custom">-- Select a program --</option>
+                    {Object.entries(example_programs).map(([name, _], ix) => (
+                        <option value={name} key={ix}>
                             {name}
                         </option>
                     ))}
@@ -115,15 +123,21 @@ class IOBar extends React.Component<IOBarProps> {
                     return (
                         <div
                             className={
-                                'IOStream ' + (stream.readonly
-                                    ? 'readonly '
-                                    : '') + stream.name
+                                'IOStream ' +
+                                (stream.readonly ? 'readonly ' : '') +
+                                stream.name
                             }
                             key={stream.name}
                         >
-                            <div className={"IOBarLabel " + stream.name}>{stream.name}</div>
+                            <div className={'IOBarLabel ' + stream.name}>
+                                {stream.name}
+                            </div>
                             <textarea
-                                className={"IOBarInput " + (stream.readonly ? 'readonly ' : '') + stream.name}
+                                className={
+                                    'IOBarInput ' +
+                                    (stream.readonly ? 'readonly ' : '') +
+                                    stream.name
+                                }
                                 onChange={(e) => {
                                     stream.set(e.target.value);
                                 }}
@@ -261,7 +275,7 @@ export class OISCVisualizer extends React.Component<OVProps, OVState> {
 
     generateOISCConfig(config: string): OISCConfig {
         if (!config.match(/.*;\s*$/s)) {
-            config = '(' + config + ')';
+            config = 'return (' + config + ');';
         }
         return Function('This', config)(this);
     }
@@ -353,12 +367,15 @@ export class OISCVisualizer extends React.Component<OVProps, OVState> {
                 <TableView machine={this.state.machine} cell_count={256} />
 
                 <OISCConfigEditor
-                    onUpdate={(config: string) =>
+                    onUpdate={(config: string) => {
+                        this.io.forEach((stream) => {
+                            stream.clear();
+                        });
                         this.setState({
                             config: config,
                             machine: new OISC(this.generateOISCConfig(config)),
-                        })
-                    }
+                        });
+                    }}
                 />
             </div>
         );

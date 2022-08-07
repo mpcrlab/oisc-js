@@ -38,7 +38,7 @@ export const oiscviz_default_config = `
 }
 `;
 
-export const example_programs = {
+export const example_programs: { [key: string]: string } = {
     base: oiscviz_default_config,
     two_plus_two:
         oiscviz_default_config.slice(0, -2) +
