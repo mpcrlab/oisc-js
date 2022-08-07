@@ -1,10 +1,10 @@
 {
   "files": {
-    "main.css": "/static/css/main.74604726.css",
-    "main.js": "/static/js/main.3083da0f.js",
-    "index.html": "/index.html",
-    "main.74604726.css.map": "/static/css/main.74604726.css.map",
-    "main.3083da0f.js.map": "/static/js/main.3083da0f.js.map"
+    "main.css": "https://mpcrlab.github.io/oisc-js/static/css/main.74604726.css",
+    "main.js": "https://mpcrlab.github.io/oisc-js/static/js/main.3083da0f.js",
+    "index.html": "https://mpcrlab.github.io/oisc-js/index.html",
+    "main.74604726.css.map": "https://mpcrlab.github.io/oisc-js/static/css/main.74604726.css.map",
+    "main.3083da0f.js.map": "https://mpcrlab.github.io/oisc-js/static/js/main.3083da0f.js.map"
   },
   "entrypoints": [
     "static/css/main.74604726.css",
