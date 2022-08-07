@@ -255,6 +255,7 @@ interface OVState {
     running: boolean;
     step_count: number;
     step_delay_ms: number;
+    show_cells: number;
 }
 
 export class OISCVisualizer extends React.Component<OVProps, OVState> {
@@ -271,6 +272,7 @@ export class OISCVisualizer extends React.Component<OVProps, OVState> {
             running: false,
             step_count: 0,
             step_delay_ms: 400,
+            show_cells: 100,
         };
     }
 
@@ -342,18 +344,32 @@ export class OISCVisualizer extends React.Component<OVProps, OVState> {
                 >
                     Reload
                 </button>
+                <br />
+                <label className="OISCControls-label"> Run Speed </label>
                 <input
                     type="range"
                     min="0"
-                    max="2000"
-                    value={this.state.step_delay_ms}
+                    max="8"
+                    value={-Math.log2(this.state.step_delay_ms/1000)}
                     onChange={(e: any) => {
                         this.setState({
-                            step_delay_ms: parseInt(e.target.value),
+                            step_delay_ms: 2**(-parseInt(e.target.value))*1000,
                         });
                         if (this.state.running) {
                             this.configure_run_timer();
                         }
+                    }}
+                />
+                <label className="OISCControls-label"> Visible Cells </label>
+                <input
+                    type="number"
+                    min="1"
+                    max="2048"
+                    value={this.state.show_cells}
+                    onChange={(e: any) => {
+                        this.setState({
+                            show_cells: parseInt(e.target.value),
+                        });
                     }}
                 />
             </div>
@@ -365,7 +381,7 @@ export class OISCVisualizer extends React.Component<OVProps, OVState> {
             <div className="OISCVisualizer">
                 {this.renderControls()}
                 <IOBar streams={this.io} />
-                <TableView machine={this.state.machine} cell_count={256} />
+                <TableView machine={this.state.machine} cell_count={this.state.show_cells} />
 
                 <OISCConfigEditor
                     onUpdate={(config: string) => {
