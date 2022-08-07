@@ -122,9 +122,7 @@ class LazyListWithTriggers {
         overwrite: boolean = false
     ) {
         // @ts-ignore
-        callbacks = (typeof callbacks !== 'Array'
-            ? [callbacks]
-            : callbacks) as LazyMemWriteCallback[];
+        callbacks = (Array.isArray(callbacks) ? callbacks : [callbacks]);
         ix = ix in this.symbols ? this.symbols[ix] : ix;
         if (ix in this.write_callbacks && !overwrite) {
             callbacks.push(...this.write_callbacks[ix as number]);
@@ -175,13 +173,13 @@ export const oisc_default_config: OISCConfig = {
     7: {
         name: 'div',
         onread: (memory) =>
-            memory['B'] != 0 ? Math.floor(memory['A'] / memory['B']) : 0,
+            memory['B'] !== 0 ? Math.floor(memory['A'] / memory['B']) : 0,
     },
     8: { name: 'gt', onread: (memory) => (memory['A'] > memory['B'] ? 0 : -1) },
     9: { name: 'lt', onread: (memory) => (memory['A'] < memory['B'] ? 0 : -1) },
     10: {
         name: 'eq',
-        onread: (memory) => (memory['A'] == memory['B'] ? 0 : -1),
+        onread: (memory) => (memory['A'] === memory['B'] ? 0 : -1),
     },
     11: { name: 'input', onread: (memory) => 0 },
     12: {
@@ -190,11 +188,11 @@ export const oisc_default_config: OISCConfig = {
             console.log(String.fromCharCode(value));
         },
     },
-    13: { name: 'not', onread: (memory) => (memory['C'] == 0 ? -1 : 0) },
+    13: { name: 'not', onread: (memory) => (memory['C'] === 0 ? -1 : 0) },
     14: { name: 'xor', onread: (memory) => memory['A'] ^ memory['B'] },
     15: {
         name: 'ternary',
-        onread: (memory) => (memory['C'] == 0 ? memory['A'] : memory['B']),
+        onread: (memory) => (memory['C'] === 0 ? memory['A'] : memory['B']),
     },
     16: { values: [18, 0] },
 };
@@ -259,7 +257,7 @@ export class OISC {
         if (config.onwrite !== undefined) {
             this.memory.register_write_callbacks(ix, config.onwrite, true);
         }
-        if (typeof config.value == 'function') {
+        if (typeof config.value === 'function') {
             this.memory.register_read_callback(ix, config.value);
         } else if (typeof config.value === 'number') {
             this.memory[ix] = config.value;
@@ -295,9 +293,9 @@ export class OISC {
                 } else if (typeof value === 'string') {
                     if (/^\d+$/.test(value)) {
                         this.memory[ix] = parseInt(value);
-                    } else if (value.length == 1) {
+                    } else if (value.length === 1) {
                         this.memory[ix + i] = value.charCodeAt(0);
-                    } else if (value.startsWith('^') && value.length == 2) {
+                    } else if (value.startsWith('^') && value.length === 2) {
                         this.memory[ix + i] = this.memory.symbols[
                             value.charCodeAt(1)
                         ];
@@ -352,7 +350,7 @@ export class OISC {
     }
 
     isDone() {
-        return this.memory[0] == 0;
+        return this.memory[0] === 0;
     }
 
     step() {

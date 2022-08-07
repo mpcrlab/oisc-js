@@ -160,17 +160,17 @@ interface CellProps {
 class OISCCell extends React.Component<CellProps> {
     render() {
         let classNames = '';
-        if (this.props.cell_index == this.props.machine.memory[0]) {
+        if (this.props.cell_index === this.props.machine.memory[0]) {
             classNames += ' oisc-cell-source-pointer';
-        } else if (this.props.cell_index == this.props.machine.memory[0] + 1) {
+        } else if (this.props.cell_index === this.props.machine.memory[0] + 1) {
             classNames += ' oisc-cell-target-pointer';
         } else if (
-            this.props.cell_index ==
+            this.props.cell_index ===
             this.props.machine.memory._cached[this.props.machine.memory[0]]
         ) {
             classNames += ' oisc-cell-source';
         } else if (
-            this.props.cell_index ==
+            this.props.cell_index ===
             this.props.machine.memory._cached[this.props.machine.memory[0] + 1]
         ) {
             classNames += ' oisc-cell-target';
@@ -280,6 +280,7 @@ export class OISCVisualizer extends React.Component<OVProps, OVState> {
         if (!config.match(/.*;\s*$/s)) {
             config = 'return (' + config + ');';
         }
+        // eslint-disable-next-line
         return Function('This', config)(this);
     }
 
