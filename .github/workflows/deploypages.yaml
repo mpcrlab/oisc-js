@@ -12,6 +12,9 @@ jobs:
     build:
         runs-on: ubuntu-latest
 
+        env:
+            PUBLIC_URL: https://mpcrlab.github.io/oisc-js
+
         steps:
             - name: Pull Code
               uses: actions/checkout@v3
