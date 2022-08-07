@@ -175,9 +175,10 @@ class OISCCell extends React.Component<CellProps> {
         ) {
             classNames += ' oisc-cell-target';
         } else if (
-            this.props.machine.memory._cached[this.props.cell_index] == 0 &&
-            this.props.machine.memory.symbols_of_ix[this.props.cell_index] ==
-                null
+            !(
+                this.props.machine.memory._cached[this.props.cell_index] ||
+                this.props.machine.memory.symbols_of_ix[this.props.cell_index]
+            )
         ) {
             classNames += ' oisc-cell-empty';
         }
